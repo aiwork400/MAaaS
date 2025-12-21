@@ -1,0 +1,267 @@
+{
+  "deployment_plan": {
+    "client": "Nexus Financial Assurance Ltd.",
+    "industry": "FinTech / Audit Services",
+    "target_market": "Finance",
+    "generated_by": "Prime Orchestrator, Swarm Agency",
+    "date": "2025-12-15",
+    "status": "MAPPED & READY FOR DEPLOYMENT",
+    "agent_instances": {
+      "project_manager": {
+        "agent_id": "Nexus_PM-{UUID}",
+        "base_class": "Agent_ProjectManager",
+        "role_name": "Audit Workflow Coordinator",
+        "specialization": "Audit Workflow Supervisor",
+        "status": "ACTIVE",
+        "contract_id": "Nexus Financial Assurance Ltd.-PM-MASTER",
+        "contract_status": "SIGNED"
+      },
+      "researcher": {
+        "agent_id": "Nexus_Researcher-{UUID}",
+        "base_class": "Agent_Researcher",
+        "role_name": "Junior Data Analyst",
+        "specialization": "Data Ingestion & Normalization",
+        "status": "ACTIVE",
+        "contract_id": "Nexus Financial Assurance Ltd.-RES-01",
+        "contract_status": "SIGNED",
+        "mcp_tools": [
+          "MCP-PDF-Parser",
+          "MCP-Excel-Writer",
+          "MCP-Web-Search"
+        ]
+      },
+      "compliance": {
+        "agent_id": "Nexus_Compliance-{UUID}",
+        "base_class": "Agent_Compliance",
+        "role_name": "Compliance Screener",
+        "specialization": "EU/GDPR + SOX",
+        "status": "ACTIVE",
+        "contract_id": "Nexus Financial Assurance Ltd.-COMP-01",
+        "contract_status": "SIGNED",
+        "security_class": "High"
+      },
+      "financial_officer": {
+        "agent_id": "Nexus_Finance_Officer-{UUID}",
+        "base_class": "Agent_FinancialOfficer",
+        "role_name": "Financial Officer",
+        "specialization": "Token Budget & Cost Auditor",
+        "status": "ACTIVE",
+        "contract_id": "Nexus Financial Assurance Ltd.-FIN-01",
+        "contract_status": "SIGNED"
+      }
+    },
+    "mpc_protocols": {
+      "compliance_agent": {
+        "agent_id": "Nexus_Compliance",
+        "primary_protocol": {
+          "name": "Yao's Garbled Circuits (Yao-GC)",
+          "protocol_type": "2PC",
+          "security_model": "Semi-Honest (with malicious extensions via Cut-and-Choose)",
+          "performance": "Constant rounds (independent of circuit depth)",
+          "use_case": "Boolean circuit evaluation for watchlist matching without revealing PII",
+          "optimization_techniques": [
+            "Half Gates: Reduces AND gates to 2 ciphertexts (bandwidth optimal)",
+            "FreeXOR: XOR gates computed without ciphertexts (global key offset Δ)",
+            "Garbled Row Reduction (GRR3): Reduces transmitted ciphertexts per gate (4→3)"
+          ],
+          "circuit_design": {
+            "operations": [
+              "Transaction amount comparisons (> $10k flagging)",
+              "Watchlist membership checks (Global_Sanctions_List.db lookups)",
+              "GDPR/SOX policy rule evaluation"
+            ],
+            "depth_optimization": "Low-depth Boolean circuits"
+          }
+        },
+        "secondary_protocol": {
+          "name": "GMW (Goldreich-Micali-Wigderson)",
+          "protocol_type": "Multi-party",
+          "security_model": "Semi-Honest",
+          "use_case": "Additive secret sharing for aggregation of flagged transactions across multiple data sources",
+          "performance_note": "Rounds scale with circuit depth (optimized via low-depth circuit design)"
+        },
+        "malicious_security_extension": {
+          "name": "Authenticated Secret Sharing (SPDZ-style)",
+          "activation_conditions": [
+            "If Compliance Agent detects potential adversarial behavior or collusion attempts",
+            "For high-value transactions (> $100k) requiring strongest guarantees"
+          ],
+          "protocol_details": {
+            "preprocessing_phase": "Generates Beaver multiplication triples offline",
+            "online_phase": "Fast computation with authenticated shares",
+            "security_model": "Malicious (strongest cryptographic guarantees)"
+          }
+        },
+        "side_channel_hardening": {
+          "reject_variable_time_crypto": true,
+          "enforce_group_membership_checks": true,
+          "deterministic_nonces": true,
+          "compliance_notes": [
+            "All modular inversions use constant-time algorithms",
+            "ECC points validated for prime-order subgroup (prevents Small Subgroup Attacks, CBS-02-004)",
+            "Ed25519 signing uses deterministic nonces (prevents CBS-02-001)"
+          ]
+        },
+        "mpc_data_flow": [
+          "Raw Transaction Data (PII)",
+          "[MPC Preprocessing: Secret Sharing]",
+          "Yao-GC Circuit Execution (Watchlist Matching)",
+          "[MPC Output: Flags Only (No PII Revealed)]",
+          "Session Firewall Validation (C6 Protection)",
+          "Provenance-Logged Results → Project Manager"
+        ],
+        "privacy_guarantee": "Compliance Agent never sees raw names/IDs during processing. Only boolean flags (match/no-match) and aggregate statistics are revealed."
+      }
+    },
+    "token_budget_allocation": {
+      "total_monthly_budget": 500000,
+      "allocation_strategy": {
+        "project_manager": {
+          "allocation": 100000,
+          "percentage": 20,
+          "justification": "Workflow decomposition, delegation, trust ledger management",
+          "penalty_threshold": "Exceeds 100k → Contract review"
+        },
+        "researcher": {
+          "allocation": 200000,
+          "percentage": 40,
+          "justification": "Heavy MCP tool usage (PDF parsing, Excel writing, web search)",
+          "penalty_threshold": "Exceeds 200k → Immediate halt"
+        },
+        "compliance": {
+          "allocation": 150000,
+          "percentage": 30,
+          "justification": "MPC computation overhead + watchlist queries",
+          "penalty_threshold": "Exceeds 150k → Security audit"
+        },
+        "financial_officer": {
+          "allocation": 50000,
+          "percentage": 10,
+          "justification": "Budget monitoring, reporting, cost analysis",
+          "penalty_threshold": "Exceeds 50k → Escalation to human"
+        }
+      },
+      "enforcement_rules": {
+        "per_agent_ceilings": "Each agent's token_budget_max is set to their allocation",
+        "cross_agent_oversight": "Nexus_Finance_Officer monitors total swarm usage via record_token_spend()",
+        "penalty_clause": "Any data leak or hallucination regarding financial figures results in immediate contract termination",
+        "trust_ledger_impact": "Token overruns reduce agent trust_score (affects future task assignments)"
+      },
+      "reserve_buffer": {
+        "unallocated_reserve": 0,
+        "note": "100% allocated for predictability",
+        "emergency_escalation": "If any agent exceeds allocation, Nexus_Finance_Officer triggers human review (H-01: Chief Audit Executive)"
+      }
+    },
+    "wf_audit_01_integration": {
+      "workflow_id": "WF-AUDIT-01",
+      "workflow_name": "Automated Transaction Audit",
+      "mcp_tools_required": [
+        "MCP-PDF-Parser",
+        "MCP-Excel-Writer",
+        "MCP-Web-Search"
+      ],
+      "steps": [
+        {
+          "step_number": 1,
+          "step_name": "Ingest Raw Transaction Logs (PDF/CSV)",
+          "agent": "Nexus_Researcher",
+          "mcp_tool": "MCP-PDF-Parser",
+          "action": "Parse transaction logs with MPC mode enabled (PII remains encrypted)",
+          "output": "Normalized transaction data (PII-encrypted via MPC secret shares)"
+        },
+        {
+          "step_number": 2,
+          "step_name": "Normalize Data Format",
+          "agent": "Nexus_Researcher",
+          "mcp_tool": "MCP-Excel-Writer",
+          "action": "Write normalized transactions to Excel template with MPC mode",
+          "output": "Standardized transaction records ready for compliance screening"
+        },
+        {
+          "step_number": 3,
+          "step_name": "Cross-Reference Against Global_Sanctions_List.db",
+          "agent": "Nexus_Compliance",
+          "mcp_tool": "MCP-Web-Search",
+          "mpc_protocol": "Yao's GC",
+          "action": "MPC-encrypted watchlist matching (circuit: watchlist_membership_check)",
+          "output": "Boolean flags indicating suspicious transactions (> $10k or watchlist matches)"
+        },
+        {
+          "step_number": 4,
+          "step_name": "Flag Suspicious Outliers (> $10k)",
+          "agent": "Nexus_Compliance",
+          "mpc_protocol": "Yao's GC",
+          "action": "Circuit evaluates: transaction_amount > 10000",
+          "output": "Flag vector (no amount values revealed to Compliance Agent)"
+        },
+        {
+          "step_number": 5,
+          "step_name": "Generate Summary Report for Human Review",
+          "agent": "Nexus_PM (orchestrates) → Nexus_Researcher (writes report)",
+          "mcp_tool": "MCP-Excel-Writer",
+          "action": "Generate aggregated, anonymized report with full provenance log",
+          "output": "Excel report delivered to H-01 (Chief Audit Executive) for final sign-off"
+        }
+      ],
+      "session_firewall": {
+        "enabled": true,
+        "mode": "Session-level Semantic Firewall",
+        "implementation": [
+          "All MCP tool calls intercepted by Session Firewall LLM",
+          "Ingests entire multi-agent dialogue in sliding window",
+          "Detects when composite context breaches policy (e.g., PII reconstruction attempts)",
+          "Blocks or sanitizes queries that could lead to cross-domain context bypass"
+        ],
+        "protection_against": "C6: Cross-domain Context Bypass"
+      },
+      "provenance_tracking": {
+        "requirement": "Full Provenance Tracking with neural provenance / audit logs (C5)",
+        "implementation": [
+          "Each agent embeds subtle signatures (watermarks) in generated content",
+          "Decoder model reconstructs timeline of contributions",
+          "All MCP tool calls logged with: Agent ID, Timestamp, Input/output hashes, MPC protocol used, Trust score"
+        ],
+        "log_location": "/factory_logs/nexus_provenance_audit.jsonl"
+      }
+    },
+    "deployment_checklist": {
+      "pre_deployment": {
+        "client_profile_ingested": true,
+        "agents_instantiated": true,
+        "e_contracts_generated": true,
+        "token_budgets_allocated": true,
+        "mcp_tools_configured": true
+      },
+      "security_validation": {
+        "mpc_protocols_assigned": true,
+        "session_firewall_enabled": true,
+        "side_channel_hardening_enforced": true,
+        "provenance_tracking_configured": true
+      },
+      "contract_status": {
+        "nexus_pm": "SIGNED",
+        "nexus_researcher": "SIGNED",
+        "nexus_compliance": "SIGNED",
+        "nexus_finance_officer": "SIGNED"
+      },
+      "production_ready": true
+    },
+    "references": {
+      "master_data_source": "Master Data for MAaaS.pdf (file:///c%3A/Users/PC/MAaaS/Master%20Data%20for%20MAaaS.pdf)",
+      "mpc_protocols_source": "Source 19 (Yao's GC, GMW, BGW, SPDZ)",
+      "security_challenges": [
+        "C5 (Provenance)",
+        "C6 (Context Bypass)"
+      ],
+      "cb_mpc_audit": [
+        "CBS-02-001",
+        "CBS-02-002",
+        "CBS-02-003",
+        "CBS-02-004",
+        "CBS-02-006"
+      ],
+      "base_agent_reference": "catalogue/gent_ProjectManager.py"
+    }
+  }
+}

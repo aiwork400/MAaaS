@@ -1,0 +1,67 @@
+{
+  "client_meta": {
+    "company_name": "Nexus Financial Assurance Ltd.",
+    "industry": "FinTech / Audit Services",
+    "size": "Mid-Market (50 employees)",
+    "primary_pain_point": "Manual compliance checks are too slow and prone to human error. Data privacy is critical."
+  },
+  "organizational_structure": {
+    "human_roles": [
+      {
+        "role_id": "H-01",
+        "title": "Chief Audit Executive",
+        "responsibilities": "Final sign-off on audit reports."
+      },
+      {
+        "role_id": "H-02",
+        "title": "Senior Compliance Officer",
+        "responsibilities": "Monitors regulatory changes (GDPR/SOX)."
+      }
+    ],
+    "maas_replacement_opportunities": [
+      {
+        "target_role": "Junior Data Analyst",
+        "current_task": "Manually scraping bank statements into Excel.",
+        "mapping_requirement": "Needs 'Agent_Researcher' capabilities."
+      },
+      {
+        "target_role": "Compliance Screener",
+        "current_task": "Checking transactions against watchlists.",
+        "mapping_requirement": "Needs 'Agent_Compliance' with secure data handling."
+      },
+      {
+        "target_role": "Audit Workflow Coordinator",
+        "current_task": "Assigning files to analysts and tracking deadlines.",
+        "mapping_requirement": "Needs 'Agent_ProjectManager' (Supervisor Pattern)."
+      }
+    ]
+  },
+  "sops_and_workflows": [
+    {
+      "workflow_id": "WF-AUDIT-01",
+      "name": "Automated Transaction Audit",
+      "steps": [
+        "Ingest raw transaction logs (PDF/CSV).",
+        "Normalize data format.",
+        "Cross-reference against 'Global_Sanctions_List.db'.",
+        "Flag suspicious outliers (> $10k).",
+        "Generate Summary Report for Human Review."
+      ],
+      "tools_required": [
+        "MCP-PDF-Parser",
+        "MCP-Excel-Writer",
+        "MCP-Web-Search"
+      ]
+    }
+  ],
+  "security_mandates": {
+    "protocol_level": "High",
+    "mpc_requirement": "TRUE",
+    "mpc_justification": "Client data contains PII (Personally Identifiable Information). Operations must use Secure Multi-Party Computation (Source 19) to ensure agents do not see raw names/IDs during processing.",
+    "audit_trail": "Full Provenance Tracking (Source 64, C5) required."
+  },
+  "financial_constraints": {
+    "total_token_budget_monthly": 500000,
+    "penalty_clause": "Any data leak or hallucination regarding financial figures results in immediate contract termination."
+  }
+}
