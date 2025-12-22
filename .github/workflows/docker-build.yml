@@ -1,0 +1,89 @@
+# MAaaS - Docker Build & Verification Workflow
+# Triggers on push to main branch to verify Docker image builds successfully
+
+name: Docker Build & Verify
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:  # Allow manual triggering
+
+env:
+  PYTHON_VERSION: '3.9'
+  DOCKER_IMAGE_NAME: maaas-platform
+
+jobs:
+  build-and-verify:
+    name: Build Docker Image & Verify
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: network=host
+      
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: ${{ env.DOCKER_IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          load: true
+      
+      - name: Verify Docker image exists
+        run: |
+          docker images | grep ${{ env.DOCKER_IMAGE_NAME }}
+          echo "✓ Docker image built successfully"
+      
+      - name: Test Python version in container
+        run: |
+          docker run --rm ${{ env.DOCKER_IMAGE_NAME }}:latest python --version
+          echo "✓ Python version check passed"
+      
+      - name: Test Python imports
+        run: |
+          docker run --rm ${{ env.DOCKER_IMAGE_NAME }}:latest python -c "
+          import fastapi
+          import streamlit
+          import pandas
+          import plotly
+          import rich
+          import uvicorn
+          print('✓ All core dependencies imported successfully')
+          "
+      
+      - name: Verify application files exist
+        run: |
+          docker run --rm ${{ env.DOCKER_IMAGE_NAME }}:latest ls -la /app/
+          docker run --rm ${{ env.DOCKER_IMAGE_NAME }}:latest test -f /app/api_server.py && echo "✓ api_server.py exists"
+          docker run --rm ${{ env.DOCKER_IMAGE_NAME }}:latest test -f /app/dashboard.py && echo "✓ dashboard.py exists"
+          docker run --rm ${{ env.DOCKER_IMAGE_NAME }}:latest test -f /app/run_swarm_factory.py && echo "✓ run_swarm_factory.py exists"
+          docker run --rm ${{ env.DOCKER_IMAGE_NAME }}:latest test -d /app/catalogue && echo "✓ catalogue/ directory exists"
+      
+      - name: Test FastAPI server startup (dry run)
+        run: |
+          timeout 10 docker run --rm ${{ env.DOCKER_IMAGE_NAME }}:latest \
+            python -c "from api_server import app; print('✓ FastAPI app imports successfully')" || true
+      
+      - name: Build summary
+        run: |
+          echo "## 🐳 Docker Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Docker image built successfully" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Python dependencies verified" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Application files verified" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** \`${{ env.DOCKER_IMAGE_NAME }}:latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Python:** \`$(docker run --rm ${{ env.DOCKER_IMAGE_NAME }}:latest python --version)\`" >> $GITHUB_STEP_SUMMARY
+

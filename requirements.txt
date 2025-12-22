@@ -1,0 +1,25 @@
+# MAaaS - Multi-Agent as a Service Enterprise Platform
+# Core Dependencies
+
+# FastAPI & API Server
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.0
+
+# Streamlit Dashboard
+streamlit>=1.28.0
+pandas>=2.1.0
+plotly>=5.17.0
+
+# CLI & Rich Terminal UI
+rich>=13.7.0
+
+# Database (Optional - for PostgreSQL support)
+psycopg2-binary>=2.9.9
+
+# HTTP Client (for MCP tools and external APIs)
+requests>=2.31.0
+
+# Standard library dependencies (included for reference)
+# json, pathlib, datetime, typing, sys, os, uuid, hashlib, re, argparse, collections
+

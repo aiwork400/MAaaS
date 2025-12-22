@@ -1,0 +1,73 @@
+# MAaaS - Multi-Agent as a Service Enterprise Platform
+# Docker Compose Configuration for Multi-Service Deployment
+
+version: '3.8'
+
+services:
+  # Backend API Service (FastAPI)
+  maaas-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: maaas-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./clients:/app/clients
+      - ./factory_logs:/app/factory_logs
+      - ./archives:/app/archives
+      - ./catalogue:/app/catalogue
+    environment:
+      - PYTHONUNBUFFERED=1
+      - ENVIRONMENT=production
+    command: uvicorn api_server:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - maaas-network
+
+  # Frontend Dashboard Service (Streamlit)
+  maaas-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: maaas-frontend
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./clients:/app/clients
+      - ./factory_logs:/app/factory_logs
+      - ./archives:/app/archives
+      - ./catalogue:/app/catalogue
+    environment:
+      - PYTHONUNBUFFERED=1
+      - ENVIRONMENT=production
+    command: streamlit run dashboard.py --server.port=8501 --server.address=0.0.0.0 --server.headless=true
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8501/_stcore/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    networks:
+      - maaas-network
+    depends_on:
+      - maaas-backend
+
+networks:
+  maaas-network:
+    driver: bridge
+
+volumes:
+  # Optional: Named volumes for persistent data
+  # Uncomment if you want Docker-managed volumes instead of bind mounts
+  # clients-data:
+  # factory-logs-data:
+  # archives-data:
+
