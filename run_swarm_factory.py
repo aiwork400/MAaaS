@@ -38,7 +38,7 @@ from catalogue.agent_catalogue import get_default_agents_for_market
 from catalogue.Agent_DBA import Agent_DBA
 from catalogue.Agent_NetSec import Agent_NetSec
 from catalogue.Agent_Marketer import Agent_Marketer
-from clients.nexus_mapping import (
+from clients.client_mapping import (
     load_client_profile,
     generate_econtracts,
     build_security_block,

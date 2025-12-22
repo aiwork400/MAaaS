@@ -7,10 +7,14 @@ research-backed target markets: Consultancy, Tech, and Finance.
 Security & Architecture Reference:
 - Master Data for MAaaS (file:///c%3A/Users/PC/MAaaS/Master%20Data%20for%20MAaaS.pdf)
 - MPC, MCP, and A2A-based multi-agent patterns (Supervisor, Evaluator-Optimizer).
+
+Base Agent Class:
+- Agent_Base: Core agent template with MCP capability for external tool access
 """
 
 from typing import Dict, Type
 
+from catalogue.Agent_Base import Agent_Base, generate_agent_system_prompt
 from catalogue.gent_ProjectManager import Agent_ProjectManager
 from catalogue.agent_FinancialOfficer import Agent_FinancialOfficer
 from catalogue.agent_Dev_Backend import Agent_Dev_Backend
@@ -52,6 +56,8 @@ def get_default_agents_for_market(market: str) -> Dict[str, Type]:
 
 
 __all__ = [
+    "Agent_Base",
+    "generate_agent_system_prompt",
     "Agent_ProjectManager",
     "Agent_FinancialOfficer",
     "Agent_Dev_Backend",
