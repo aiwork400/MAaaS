@@ -20,6 +20,9 @@ psycopg2-binary>=2.9.9
 # HTTP Client (for MCP tools and external APIs)
 requests>=2.31.0
 
+# YAML Support (for Agent Expertise/Mental Models)
+pyyaml>=6.0.1
+
 # Standard library dependencies (included for reference)
 # json, pathlib, datetime, typing, sys, os, uuid, hashlib, re, argparse, collections
 

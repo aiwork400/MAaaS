@@ -13,6 +13,8 @@ import uuid
 from datetime import datetime
 from typing import Dict, Optional, List, Any
 
+from catalogue.Agent_Expertise import Agent_Expertise
+
 
 class Agent_Base:
     """
@@ -173,6 +175,9 @@ class Agent_Base:
         self.role = role
         self.active_contract: Optional[Dict] = None
         self.created_at = datetime.now().isoformat()
+        
+        # Initialize Agent Expertise module for persistent mental model
+        self.expertise = Agent_Expertise(agent_id=self.agent_id, role=self.role)
     
     def sign_contract(self, contract_json: Dict) -> bool:
         """
@@ -282,6 +287,70 @@ Important Rules:
 4. Handle errors gracefully and self-correct based on error messages
 5. Use context manager (with statement) for automatic cleanup
         """
+    
+    def generate_system_prompt(self, role_specific_instructions: str = "") -> str:
+        """
+        Generate a system prompt for this agent that includes the persistent mental model.
+        
+        This method injects the agent's current expertise/mental model into the system
+        prompt, enabling the agent to build upon previous knowledge.
+        
+        Args:
+            role_specific_instructions: Additional role-specific instructions
+            
+        Returns:
+            Formatted system prompt string with mental model included
+        """
+        # Get mental model summary
+        mental_model_summary = self.expertise.get_mental_model_summary()
+        
+        # Build expertise section
+        expertise_section = f"""
+CAPABILITY: Persistent Mental Model (Agentic Expertise)
+=======================================================
+
+You have a persistent mental model that stores your domain expertise and learned patterns.
+This allows you to build upon previous knowledge rather than relearning tasks each time.
+
+BEFORE ACTING:
+1. Check your mental model using query_mental_model(topic) to see if you have relevant expertise
+2. Review your existing insights before starting a task
+3. Avoid relearning information you already know
+
+AFTER SOLVING:
+1. When you discover a new pattern, insight, or solution, update your mental model
+2. Use update_mental_model(key, insight) to store valuable findings
+3. Examples:
+   - "API Endpoint X requires Auth Header Y" → update_mental_model("API_Endpoints", "...")
+   - "Common bug pattern: ..." → update_mental_model("Common_Bugs", "...")
+   - "Database schema insight: ..." → update_mental_model("Database_Queries", "...")
+
+Your Current Mental Model:
+{mental_model_summary}
+
+Methods Available:
+- self.expertise.query_mental_model(topic) → Returns list of insights for a topic
+- self.expertise.update_mental_model(key, insight) → Stores a new insight
+- self.expertise.get_all_expertise_topics() → Returns all topics you have expertise in
+"""
+        
+        # Combine all sections
+        full_prompt = AGENT_SYSTEM_PROMPT_TEMPLATE.format(
+            agent_name=self.name,
+            role=self.role,
+            role_specific_instructions=role_specific_instructions
+        )
+        
+        # Insert expertise section before MCP section
+        # Find the position of "CAPABILITY: External Tool Access via MCP"
+        mcp_marker = "CAPABILITY: External Tool Access via MCP"
+        if mcp_marker in full_prompt:
+            full_prompt = full_prompt.replace(mcp_marker, expertise_section + "\n" + mcp_marker)
+        else:
+            # If marker not found, append expertise section
+            full_prompt = full_prompt.rstrip() + "\n\n" + expertise_section
+        
+        return full_prompt
     
     def __repr__(self) -> str:
         """String representation of the agent."""

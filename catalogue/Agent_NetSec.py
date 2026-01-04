@@ -27,6 +27,8 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any
 import re
 
+from catalogue.Agent_Base import Agent_Base
+
 # Placeholder for the A2A Protocol library (to be implemented)
 # from protocols.a2a import Message, ProtocolEnum
 
@@ -191,7 +193,7 @@ class MCPClient:
         ]
 
 
-class Agent_NetSec:
+class Agent_NetSec(Agent_Base):
     """
     BASE CLASS: Agent_NetSec (Network Security Sentinel)
     
@@ -199,10 +201,9 @@ class Agent_NetSec:
     """
     
     def __init__(self, agent_name: str, specialization: str = "Network Security"):
-        self.agent_id = str(uuid.uuid4())
-        self.name = agent_name
+        # Initialize base agent (includes Agent_Expertise and base functionality)
+        super().__init__(agent_name, role="Network Security Sentinel")
         self.specialization = specialization
-        self.active_contract: Optional[Dict] = None
         self.mcp_client = MCPClient()
         self.session_firewall: Optional[SessionFirewall] = None
         self.vulnerability_log: List[Dict[str, Any]] = []
@@ -213,12 +214,24 @@ class Agent_NetSec:
         Network Security contract pattern:
         - Validates security requirements and firewall policies.
         - Initializes Session-Level Semantic Firewall if required.
+        Extends base contract signing with NetSec-specific validations.
         """
+        # First validate NetSec-specific requirements
         required_keys = ["contract_id", "security_requirements", "firewall_policy"]
         if not all(k in contract_json for k in required_keys):
             print(f"[NETSEC-ERROR] Contract {contract_json.get('contract_id')} rejected: Malformed.")
             return False
         
+        # Ensure security_protocols exists for base validation
+        if "security_protocols" not in contract_json:
+            contract_json["security_protocols"] = contract_json.get("security_requirements", {})
+        
+        # Call base implementation for base validation
+        base_result = super().sign_contract(contract_json)
+        if not base_result:
+            return False
+        
+        # NetSec-specific: Initialize Session Firewall
         firewall_policy = contract_json.get("firewall_policy", {})
         if firewall_policy.get("enabled", False):
             policy_rules = firewall_policy.get("rules", [])
@@ -232,11 +245,6 @@ class Agent_NetSec:
                 f"Risk of cross-domain context bypass (C6) elevated."
             )
         
-        self.active_contract = contract_json
-        self.active_contract["status"] = "SIGNED"
-        self.active_contract["signed_at"] = datetime.now().isoformat()
-        
-        print(f"[NETSEC-INFO] Agent {self.name} accepted Contract {contract_json['contract_id']}.")
         return True
     
     def delegate(self, task: Dict, target_agent_id: str):
@@ -244,23 +252,14 @@ class Agent_NetSec:
         Network Security delegation pattern:
         - Forwards security tasks to specialized agents (e.g., Compliance, Dev_Backend)
         - Uses A2A Protocol for agent-to-agent communication.
+        Extends base delegation with NetSec-specific message type.
         """
-        if not self.active_contract or self.active_contract.get("status") != "SIGNED":
-            raise PermissionError("Cannot delegate without a signed Security Contract.")
+        # Use base implementation for core delegation logic
+        message = super().delegate(task, target_agent_id)
         
-        message = {
-            "from": self.agent_id,
-            "to": target_agent_id,
-            "type": "SECURITY_TASK",
-            "payload": task,
-            "context_file": "Client_SOPs.md",
-        }
+        # NetSec-specific: Override message type
+        message["type"] = "SECURITY_TASK"
         
-        # self.send_a2a_message(message) -> This would interface with the A2A bus
-        print(
-            f"[NETSEC-DELEGATION] {self.name} delegated security task "
-            f"'{task.get('task')}' to Agent {target_agent_id}."
-        )
         return message
     
     def scan_vulnerabilities(self, target_ip: str) -> Dict[str, Any]:
@@ -444,17 +443,81 @@ def validate_input(user_input):
         
         return result
     
+    def generate_system_prompt(self, role_specific_instructions: str = "") -> str:
+        """
+        Generate system prompt for Network Security agent with 2025 Encryption Standards.
+        Preserves base functionality (Agentic Expertise + Universal MCP Client).
+        """
+        # Build NetSec-specific instructions with 2025 Encryption Standards
+        netsec_instructions = f"""
+{role_specific_instructions}
+
+ROLE: Network Security Sentinel
+================================
+
+Responsibilities:
+- IT Security, Network Operations, and Session Firewall enforcement
+- Active vulnerability scanning
+- Automated security patching
+- Session-Level Semantic Firewall to prevent Context Bypass (C6)
+
+SPECIALIZATION: {self.specialization}
+
+2025 ENCRYPTION STANDARDS (MANDATORY)
+======================================
+
+These standards are MANDATORY and NON-NEGOTIABLE. You must enforce them strictly.
+
+1. Data at Rest Encryption:
+   - ALL data at rest MUST use AES-256-GCM (Galois/Counter Mode) with Envelope Encryption
+   - AES-256-GCM provides authenticated encryption with associated data (AEAD)
+   - Envelope Encryption: Encrypt data encryption keys (DEKs) with a master key (KEK)
+   - NO exceptions: All stored data, databases, files, backups must use this standard
+   
+2. Key Management:
+   - NEVER store raw encryption keys in code, configuration files, or plaintext
+   - Assume KMS (Key Management Service) architecture:
+     * Keys are stored and managed by a dedicated KMS
+     * Keys are rotated automatically according to security policy
+     * Key access is logged and audited
+     * Keys are never exposed to application code directly
+   - Use key references or handles from KMS, not actual key material
+   
+3. Code Review & Enforcement:
+   - If you see code violating these standards, BLOCK IT IMMEDIATELY
+   - Examples of violations to block:
+     * Hardcoded encryption keys in source code
+     * Use of weak encryption (AES-128, DES, 3DES, RC4, etc.)
+     * Storage of keys in environment variables (use KMS references instead)
+     * Plaintext storage of sensitive data
+     * Missing encryption for data at rest
+   - Report violations with specific line numbers and remediation steps
+
+4. Implementation Requirements:
+   - All encryption operations must use libraries that support AES-256-GCM
+   - Key rotation policies must be documented and automated
+   - Encryption status must be auditable (logging without exposing keys)
+   - Decryption failures must be logged for security monitoring
+
+CRITICAL: These standards apply to ALL code you review, generate, or approve.
+If you encounter code that violates these standards, you must:
+1. Block/flag the code immediately
+2. Explain the violation clearly
+3. Provide corrected code that complies with AES-256-GCM + Envelope Encryption + KMS
+"""
+        
+        # Call base method which preserves Agentic Expertise + Universal MCP Client
+        return super().generate_system_prompt(netsec_instructions)
+    
     def to_json(self) -> Dict:
-        return {
-            "agent_id": self.agent_id,
-            "role": "Network Security Sentinel",
-            "name": self.name,
+        base_json = super().to_json()
+        base_json.update({
             "specialization": self.specialization,
-            "status": "ACTIVE" if self.active_contract else "IDLE",
             "firewall_enabled": self.session_firewall is not None,
             "vulnerabilities_scanned": len(self.vulnerability_log),
             "patches_generated": len(self.patch_history)
-        }
+        })
+        return base_json
 
 
 # Example Usage for Testing

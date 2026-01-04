@@ -1,0 +1,31 @@
+{
+  "client_meta": {
+    "company_name": "Apex Growth Systems",
+    "industry": "Digital Marketing",
+    "size": "Mid-Market (30 employees)",
+    "primary_pain_point": "Manual lead generation is inefficient. Need automated market trend analysis via Data Commons and real-time ROI dashboards via Rill. GDPR compliance required."
+  },
+  "organizational_structure": {
+    "human_roles": [],
+    "maas_replacement_opportunities": []
+  },
+  "sops_and_workflows": [],
+  "security_mandates": {
+    "protocol_level": "High",
+    "mpc_requirement": "TRUE",
+    "mpc_justification": "Client data contains PII for GDPR compliance",
+    "audit_trail": "Full Provenance Tracking (C5) required."
+  },
+  "financial_constraints": {
+    "total_token_budget_monthly": 500000,
+    "penalty_clause": "Any data leak results in immediate contract termination."
+  },
+  "goals": [
+    "Autonomous Lead Generation",
+    "Market Trend Analysis via Data Commons",
+    "Real-time ROI Dashboards via Rill"
+  ],
+  "compliance_level": "High (GDPR Focus)",
+  "budget_tier": "Performance-Based"
+}
+

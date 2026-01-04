@@ -14,6 +14,7 @@ Reference: Master Data for MAaaS.pdf
 
 import sys
 import json
+import argparse
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 from datetime import datetime
@@ -50,11 +51,14 @@ console = Console()
 class SwarmFactory:
     """Main factory orchestrator for agent fabrication."""
     
-    def __init__(self):
+    def __init__(self, profile_path: Optional[Path] = None, auto_approve: bool = False):
         self.client_profile: Optional[Dict[str, Any]] = None
         self.client_name: str = ""
         self.client_dir: Path = REPO_ROOT / "clients"
-        self.nexus_dir: Path = self.client_dir / "Nexus"
+        self.profile_path: Optional[Path] = profile_path
+        self.client_dir_name: str = ""  # Will be set based on client name
+        self.nexus_dir: Path = self.client_dir / "Nexus"  # Default, will be updated
+        self.auto_approve = auto_approve
         self.agent_templates = {
             "Nexus_Compliance": {
                 "base_class": "Agent_Compliance",
@@ -95,7 +99,11 @@ class SwarmFactory:
         console.print("[bold cyan]STAGE 1: INTAKE[/bold cyan]")
         console.print("[bold cyan]===========================================================[/bold cyan]\n")
         
-        profile_path = self.client_dir / "nexus_financial_assurance.json"
+        # Use provided profile path or default
+        if self.profile_path is None:
+            profile_path = self.client_dir / "nexus_financial_assurance.json"
+        else:
+            profile_path = self.profile_path
         
         if not profile_path.exists():
             console.print(f"[red]ERROR: Client profile not found at {profile_path}[/red]")
@@ -160,7 +168,48 @@ class SwarmFactory:
                     }
                 }
             
-            self.client_name = self.client_profile["client_meta"]["company_name"]
+            self.client_name = self.client_profile.get("client_meta", {}).get("company_name", 
+                               self.client_profile.get("client_name", "Unknown Client"))
+            
+            # Set client directory name (sanitized from client name)
+            import re
+            self.client_dir_name = re.sub(r'[^\w\s-]', '', self.client_name).strip().replace(' ', '_')
+            self.nexus_dir = self.client_dir / self.client_dir_name
+            
+            # Update agent templates to use client prefix instead of "Nexus"
+            client_prefix = self.client_dir_name.replace('_', '')
+            self.agent_templates = {
+                f"{client_prefix}_Compliance": {
+                    "base_class": "Agent_Compliance",
+                    "file": f"{client_prefix}_Compliance.py",
+                    "description": "Compliance Screener with Yao's GC for watchlist matching"
+                },
+                f"{client_prefix}_Researcher": {
+                    "base_class": "Agent_Researcher",
+                    "file": f"{client_prefix}_Researcher.py",
+                    "description": "Data Analyst with MCP tools for PDF/Excel processing"
+                },
+                f"{client_prefix}_PM": {
+                    "base_class": "Agent_ProjectManager",
+                    "file": f"{client_prefix}_PM.py",
+                    "description": "Audit Workflow Coordinator (Supervisor Pattern)"
+                },
+                f"{client_prefix}_DBA": {
+                    "base_class": "Agent_DBA",
+                    "file": f"{client_prefix}_DBA.py",
+                    "description": "Database Architect with Blind Indexing (ORAM) for PII protection"
+                },
+                f"{client_prefix}_NetSec": {
+                    "base_class": "Agent_NetSec",
+                    "file": f"{client_prefix}_NetSec.py",
+                    "description": "Network Security Sentinel with Session Firewall (C6 protection)"
+                },
+                f"{client_prefix}_Marketer": {
+                    "base_class": "Agent_Marketer",
+                    "file": f"{client_prefix}_Marketer.py",
+                    "description": "Growth Officer for Omnichannel Marketing & BI"
+                },
+            }
             
             # Display client info
             table = Table(title="Client Profile Loaded", show_header=True, header_style="bold magenta")
@@ -269,17 +318,18 @@ class SwarmFactory:
         # Check which agents already exist
         self.nexus_dir.mkdir(parents=True, exist_ok=True)
         
-        # Always include base agents (Compliance, Researcher, PM)
-        base_agents = ["Nexus_Compliance", "Nexus_Researcher", "Nexus_PM"]
+        # Always include base agents (Compliance, Researcher, PM) - use client prefix
+        client_prefix = self.client_dir_name.replace('_', '')
+        base_agents = [f"{client_prefix}_Compliance", f"{client_prefix}_Researcher", f"{client_prefix}_PM"]
         
         # Add 5-Pillar agents based on detected triggers
         pillar_agents = []
         if "DATA" in self.detected_triggers:
-            pillar_agents.append("Nexus_DBA")
+            pillar_agents.append(f"{client_prefix}_DBA")
         if "SECURITY" in self.detected_triggers:
-            pillar_agents.append("Nexus_NetSec")
+            pillar_agents.append(f"{client_prefix}_NetSec")
         if "GROWTH" in self.detected_triggers:
-            pillar_agents.append("Nexus_Marketer")
+            pillar_agents.append(f"{client_prefix}_Marketer")
         
         # Check all relevant agents
         agents_to_check = base_agents + pillar_agents
@@ -335,11 +385,11 @@ class SwarmFactory:
     
     def _get_trigger_for_agent(self, agent_name: str) -> str:
         """Get the trigger that recommended this agent."""
-        if agent_name == "Nexus_DBA":
+        if "_DBA" in agent_name:
             return "DATA" if "DATA" in self.detected_triggers else ""
-        elif agent_name == "Nexus_NetSec":
+        elif "_NetSec" in agent_name:
             return "SECURITY" if "SECURITY" in self.detected_triggers else ""
-        elif agent_name == "Nexus_Marketer":
+        elif "_Marketer" in agent_name:
             return "GROWTH" if "GROWTH" in self.detected_triggers else ""
         return ""
     
@@ -375,6 +425,10 @@ class SwarmFactory:
         # Request approval
         if to_fabricate_count == 0:
             console.print("\n[green]All agents already exist. No fabrication needed.[/green]")
+            return True
+        
+        if self.auto_approve:
+            console.print("[green]Auto-approval enabled: Proceeding with fabrication...[/green]")
             return True
         
         approved = Confirm.ask("\n[bold]Approve fabrication plan?[/bold]", default=True)
@@ -630,20 +684,21 @@ if __name__ == "__main__":
             return False
     
     def _fabricate_pm(self, agent_name: str, file_name: str) -> bool:
-        """Generate Nexus_PM.py specialized agent."""
+        """Generate PM specialized agent (e.g., Apex_Growth_Systems_PM.py)."""
         agent_path = self.nexus_dir / file_name
         
         code = f'''#!/usr/bin/env python3
 """
-{agent_name}: Specialized Project Manager Agent for Nexus Financial Assurance Ltd.
+{agent_name}: Specialized Project Manager Agent for {self.client_name}
 
 This agent implements:
-- Supervisor Pattern for WF-AUDIT-01 orchestration
+- Supervisor Pattern for workflow orchestration
 - Task decomposition and delegation
 - Trust Ledger management for subordinate agents
 - Full provenance tracking (C5 compliance)
+- V1.5 Capabilities: MCP Tools (Data Commons, Rill) and Persistent Mental Model
 
-Reference: Nexus Swarm Deployment Plan (clients/nexus_deployment_plan.md)
+Reference: {self.client_name} Deployment Plan
 """
 
 import sys
@@ -663,21 +718,22 @@ from catalogue.gent_ProjectManager import Agent_ProjectManager
 
 class {agent_name}(Agent_ProjectManager):
     """
-    Specialized Project Manager Agent for Nexus Financial Assurance Ltd.
+    Specialized Project Manager Agent for {self.client_name}
     
-    Inherits from Agent_ProjectManager and extends with:
-    - WF-AUDIT-01 specific workflow orchestration
-    - Trust Ledger tracking for Nexus agents
+    Inherits from Agent_ProjectManager (which inherits from Agent_Base) and extends with:
+    - Workflow orchestration for {self.client_name}
+    - Trust Ledger tracking for subordinate agents
     - Full provenance tracking (C5 compliance)
+    - V1.5 Capabilities: MCP Tools (Google Data Commons, Rill Data) and Persistent Mental Model
     """
     
     def __init__(self, agent_name: str = "{agent_name}", 
-                 specialization: str = "Audit Workflow Supervisor"):
+                 specialization: str = "Workflow Supervisor"):
         super().__init__(agent_name, specialization)
         self.provenance_log: List[Dict[str, Any]] = []
         self.token_usage = 0
-        self.token_budget_max = 100000  # Per Deployment Plan: 100k tokens (20% of 500k)
-        self.nexus_agent_ids: Dict[str, str] = {{}}  # Track subordinate Nexus agents
+        self.token_budget_max = 100000  # Token budget
+        self.subordinate_agent_ids: Dict[str, str] = {{}}  # Track subordinate agents
     
     def _log_provenance(self, event: Dict[str, Any]) -> None:
         """Log provenance information for C5 compliance."""
@@ -1286,7 +1342,20 @@ if __name__ == "__main__":
 
 def main():
     """Main entry point."""
-    factory = SwarmFactory()
+    parser = argparse.ArgumentParser(description='Swarm Agency Factory Pipeline')
+    parser.add_argument('--profile', type=str, help='Path to client profile JSON file', 
+                       default=None)
+    parser.add_argument('--yes', '-y', action='store_true', 
+                       help='Auto-approve fabrication plan (non-interactive mode)')
+    args = parser.parse_args()
+    
+    profile_path = None
+    if args.profile:
+        profile_path = Path(args.profile)
+        if not profile_path.is_absolute():
+            profile_path = REPO_ROOT / profile_path
+    
+    factory = SwarmFactory(profile_path=profile_path, auto_approve=args.yes)
     factory.run()
 
 

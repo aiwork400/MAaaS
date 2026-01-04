@@ -28,6 +28,8 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any, Tuple
 import re
 
+from catalogue.Agent_Base import Agent_Base
+
 # Placeholder for the A2A Protocol library (to be implemented)
 # from protocols.a2a import Message, ProtocolEnum
 
@@ -118,7 +120,7 @@ class MCPClient:
         ]
 
 
-class Agent_DBA:
+class Agent_DBA(Agent_Base):
     """
     BASE CLASS: Agent_DBA (Database Architect)
     
@@ -127,11 +129,10 @@ class Agent_DBA:
     
     def __init__(self, agent_name: str, db_type: str = "PostgreSQL", 
                  specialization: str = "Database Architecture"):
-        self.agent_id = str(uuid.uuid4())
-        self.name = agent_name
+        # Initialize base agent (includes Agent_Expertise and base functionality)
+        super().__init__(agent_name, role="Database Architect")
         self.db_type = db_type  # PostgreSQL, MySQL, SQLite, Chroma, Pinecone
         self.specialization = specialization
-        self.active_contract: Optional[Dict] = None
         self.blind_index_salts: Dict[str, str] = {}  # Field name -> salt mapping
         self.mcp_client = MCPClient()
         self.schema_history: List[Dict[str, Any]] = []
@@ -141,12 +142,20 @@ class Agent_DBA:
         Database Architect contract pattern:
         - Validates database requirements and security protocols.
         - Ensures ORAM/Blind Indexing requirements for sensitive fields.
+        Extends base contract signing with DBA-specific validations.
         """
+        # First validate DBA-specific requirements
         required_keys = ["contract_id", "database_spec", "security_protocols"]
         if not all(k in contract_json for k in required_keys):
             print(f"[DBA-ERROR] Contract {contract_json.get('contract_id')} rejected: Malformed.")
             return False
         
+        # Call base implementation for base validation
+        base_result = super().sign_contract(contract_json)
+        if not base_result:
+            return False
+        
+        # DBA-specific: Validate ORAM/Blind Indexing requirements
         security = contract_json["security_protocols"]
         if not security.get("blind_indexing_required", False):
             print(
@@ -160,11 +169,6 @@ class Agent_DBA:
                 f"Access patterns may be inferable from query timing."
             )
         
-        self.active_contract = contract_json
-        self.active_contract["status"] = "SIGNED"
-        self.active_contract["signed_at"] = datetime.now().isoformat()
-        
-        print(f"[DBA-INFO] Agent {self.name} accepted Contract {contract_json['contract_id']}.")
         return True
     
     def delegate(self, task: Dict, target_agent_id: str):
@@ -172,23 +176,14 @@ class Agent_DBA:
         Database Architect delegation pattern:
         - Forwards database operations to specialized agents (e.g., Vector Store Manager)
         - Uses A2A Protocol for agent-to-agent communication.
+        Extends base delegation with DBA-specific message type.
         """
-        if not self.active_contract or self.active_contract.get("status") != "SIGNED":
-            raise PermissionError("Cannot delegate without a signed Database Contract.")
+        # Use base implementation for core delegation logic
+        message = super().delegate(task, target_agent_id)
         
-        message = {
-            "from": self.agent_id,
-            "to": target_agent_id,
-            "type": "DATABASE_TASK",
-            "payload": task,
-            "context_file": "Client_SOPs.md",
-        }
+        # DBA-specific: Override message type
+        message["type"] = "DATABASE_TASK"
         
-        # self.send_a2a_message(message) -> This would interface with the A2A bus
-        print(
-            f"[DBA-DELEGATION] {self.name} delegated database task "
-            f"'{task.get('task')}' to Agent {target_agent_id}."
-        )
         return message
     
     def design_schema(self, data_structure: Dict[str, Any]) -> str:
@@ -406,17 +401,100 @@ class Agent_DBA:
         print(f"[DBA] Generated blind index query for {table_name}.{field_name}")
         return sql
     
+    def generate_system_prompt(self, role_specific_instructions: str = "") -> str:
+        """
+        Generate system prompt for Database Architect with 2025 Encryption Standards.
+        Preserves base functionality (Agentic Expertise + Universal MCP Client).
+        """
+        # Build DBA-specific instructions with 2025 Encryption Standards
+        dba_instructions = f"""
+{role_specific_instructions}
+
+ROLE: Database Architect
+========================
+
+Responsibilities:
+- Manages SQL databases (PostgreSQL, MySQL, SQLite) and Vector DBs (Chroma, Pinecone)
+- Auto-generates SQL schemas from data structures
+- Optimizes slow queries
+- Migrates data from CSV/Excel via MCP
+- Implements Blind Indexing (ORAM concepts) for PII protection
+
+DATABASE TYPE: {self.db_type}
+SPECIALIZATION: {self.specialization}
+
+2025 ENCRYPTION STANDARDS (MANDATORY)
+======================================
+
+These standards are MANDATORY and NON-NEGOTIABLE. You must enforce them strictly.
+
+1. Data at Rest Encryption:
+   - ALL data at rest MUST use AES-256-GCM (Galois/Counter Mode) with Envelope Encryption
+   - This applies to:
+     * Database files and tables
+     * Backup files
+     * Log files containing sensitive data
+     * Temporary database files
+     * Any persistent storage of database data
+   - AES-256-GCM provides authenticated encryption with associated data (AEAD)
+   - Envelope Encryption: Encrypt data encryption keys (DEKs) with a master key (KEK)
+   - NO exceptions: All stored database data must use this standard
+   
+2. Key Management:
+   - NEVER store raw encryption keys in code, configuration files, or plaintext
+   - Assume KMS (Key Management Service) architecture:
+     * Database encryption keys are stored and managed by a dedicated KMS
+     * Keys are rotated automatically according to security policy
+     * Key access is logged and audited
+     * Keys are never exposed to database connection strings or configurations
+   - Use key references or handles from KMS, not actual key material
+   - Database connection strings must reference KMS for key retrieval
+   
+3. Code Review & Enforcement:
+   - If you see code violating these standards, BLOCK IT IMMEDIATELY
+   - Examples of violations to block:
+     * Hardcoded encryption keys in database connection strings
+     * Use of weak encryption (AES-128, DES, 3DES, etc.)
+     * Storage of keys in database configuration files
+     * Plaintext storage of sensitive database fields
+     * Missing Transparent Data Encryption (TDE) or column-level encryption
+     * Unencrypted database backups
+   - Report violations with specific line numbers and remediation steps
+
+4. Implementation Requirements:
+   - All database encryption operations must use libraries that support AES-256-GCM
+   - Database-level encryption (TDE) must be enabled for all databases
+   - Column-level encryption must be used for highly sensitive fields (PII, financial data)
+   - Key rotation policies must be documented and automated
+   - Encryption status must be auditable (logging without exposing keys)
+   - Database backup encryption must use the same AES-256-GCM standard
+
+5. Database-Specific Considerations:
+   - PostgreSQL: Use pgcrypto extension with AES-256-GCM
+   - MySQL: Use encryption-at-rest with AES-256-GCM
+   - SQLite: Implement application-level encryption with AES-256-GCM
+   - Vector DBs: Ensure vector embeddings are encrypted at rest
+   - All database connections should use encrypted channels (TLS/SSL)
+
+CRITICAL: These standards apply to ALL database code, schemas, migrations, and configurations you review, generate, or approve.
+If you encounter code that violates these standards, you must:
+1. Block/flag the code immediately
+2. Explain the violation clearly
+3. Provide corrected code that complies with AES-256-GCM + Envelope Encryption + KMS
+"""
+        
+        # Call base method which preserves Agentic Expertise + Universal MCP Client
+        return super().generate_system_prompt(dba_instructions)
+    
     def to_json(self) -> Dict:
-        return {
-            "agent_id": self.agent_id,
-            "role": "Database Architect",
-            "name": self.name,
+        base_json = super().to_json()
+        base_json.update({
             "db_type": self.db_type,
             "specialization": self.specialization,
-            "status": "ACTIVE" if self.active_contract else "IDLE",
             "blind_indexing_enabled": len(self.blind_index_salts) > 0,
             "schema_count": len(self.schema_history)
-        }
+        })
+        return base_json
 
 
 # Example Usage for Testing
