@@ -1,28 +1,40 @@
 # MAaaS - Multi-Agent as a Service Enterprise Platform
 # Core Dependencies
 
-# FastAPI & API Server
-fastapi>=0.104.1
-uvicorn[standard]>=0.24.0
-pydantic>=2.5.0
+# LLM Providers (Required for V1.5 Agents)
 
-# Streamlit Dashboard
+openai
+anthropic
+
+# Web Interface & BI Dashboard
+
 streamlit>=1.28.0
 pandas>=2.1.0
 plotly>=5.17.0
 
+# FastAPI & API Server (Core Platform)
+
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.0
+
 # CLI & Rich Terminal UI
+
 rich>=13.7.0
 
 # Database (Optional - for PostgreSQL support)
+
 psycopg2-binary>=2.9.9
 
 # HTTP Client (for MCP tools and external APIs)
+
 requests>=2.31.0
 
 # YAML Support (for Agent Expertise/Mental Models)
+
 pyyaml>=6.0.1
 
-# Standard library dependencies (included for reference)
-# json, pathlib, datetime, typing, sys, os, uuid, hashlib, re, argparse, collections
+# Utilities
 
+python-dotenv
+watchdog

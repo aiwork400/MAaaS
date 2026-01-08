@@ -12,7 +12,7 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Install system dependencies
+# Install system dependencies (Required for robust Python packages)
 RUN apt-get update && apt-get install -y \
     gcc \
     postgresql-client \
@@ -28,18 +28,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Create necessary directories
-RUN mkdir -p clients factory_logs archives ops
+RUN mkdir -p clients factory_logs archives ops reports memory
 
 # Expose ports
-# 8000: FastAPI backend
-# 8501: Streamlit frontend
-EXPOSE 8000 8501
+# 8501: Streamlit frontend (The Investor Dashboard)
+EXPOSE 8501
 
-# Health check for FastAPI
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
+# --- CONFIGURATION SWITCH ---
+# OPTION 1: Run Backend API (Commented out for Demo)
+# CMD ["uvicorn", "api_server:app", "--host", "0.0.0.0", "--port", "8000"]
 
-# Default command: Run FastAPI server
-# Use docker-compose or override CMD for different services
-CMD ["uvicorn", "api_server:app", "--host", "0.0.0.0", "--port", "8000"]
-
+# OPTION 2: Run MAaaS Dashboard (Active for Investor Demo)
+CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
